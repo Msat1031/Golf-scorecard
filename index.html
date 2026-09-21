@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#173f35">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Golf Scorecard">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<title>My Golf Scorecard</title>
+<style>
+:root{--green:#173f35;--green2:#23604e;--cream:#f5f2e9;--card:#fff;--line:#d9ddd7;--text:#17221e;--muted:#68736e;--accent:#c9a84b;--danger:#a33b32}
+*{box-sizing:border-box}body{margin:0;background:var(--cream);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,Arial,sans-serif}
+header{background:linear-gradient(135deg,var(--green),var(--green2));color:white;padding:calc(14px + env(safe-area-inset-top)) 16px 16px;position:sticky;top:0;z-index:10;box-shadow:0 2px 10px #0002}
+h1{font-size:22px;margin:0 0 4px}.sub{opacity:.82;font-size:13px}
+main{max-width:760px;margin:auto;padding:14px 12px 100px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin:10px 0;box-shadow:0 2px 8px #0000000b}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+label{font-size:12px;color:var(--muted);display:block;margin:2px 0 5px}
+input,select,button{font:inherit}input,select{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;background:white;color:var(--text)}
+button{border:0;border-radius:10px;padding:10px 13px;font-weight:700;cursor:pointer}.primary{background:var(--green);color:#fff}.secondary{background:#e7ece8;color:var(--green)}.gold{background:var(--accent);color:#18200d}.danger{background:#f3dfdc;color:var(--danger)}
+.tabs{display:flex;gap:7px;overflow:auto;padding:4px 0 2px}.tab{white-space:nowrap;background:#e7ece8;color:var(--green)}.tab.active{background:var(--green);color:white}
+.hidden{display:none}.small{font-size:12px;color:var(--muted)}.titleline{display:flex;justify-content:space-between;align-items:center;gap:10px}h2{font-size:16px;margin:0 0 10px}
+.scoretable{overflow:auto;border:1px solid var(--line);border-radius:12px}.scoretable table{border-collapse:collapse;width:100%;min-width:680px;font-size:12px}
+th,td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:6px;text-align:center;white-space:nowrap}th{background:#eef2ee;color:var(--green)}td:first-child,th:first-child{text-align:left;position:sticky;left:0;background:inherit;z-index:1}
+.scoretable input{width:48px;padding:7px;text-align:center;border-radius:7px}.totals{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:10px}.metric{background:#f0f3ef;border-radius:10px;padding:8px;text-align:center}.metric b{display:block;font-size:18px}.metric span{font-size:10px;color:var(--muted)}
+.players{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.player{border:1px solid var(--line);border-radius:12px;padding:9px}.player.active{border-color:var(--green);box-shadow:0 0 0 2px #173f3522}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.actions button{flex:1;min-width:120px}
+.notice{padding:10px;border-radius:10px;background:#fff7dc;font-size:12px;color:#65531c}
+footer{text-align:center;color:var(--muted);font-size:11px;padding:20px}
+@media(max-width:480px){.row,.row3{grid-template-columns:1fr}.totals{grid-template-columns:repeat(2,1fr)}.players{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><h1>⛳ My Golf Scorecard</h1><div class="sub">Personal golf scoring • works offline</div></header>
+<main>
+<div class="tabs">
+<button class="tab active" data-tab="round">Round</button>
+<button class="tab" data-tab="stats">Stats</button>
+<button class="tab" data-tab="history">History</button>
+</div>
+
+<section id="round">
+<div class="card">
+<h2>Round Setup</h2>
+<div class="row">
+<div><label>Course</label><select id="course"></select></div>
+<div><label>Tee</label><select id="tee"></select></div>
+</div>
+<div class="row">
+<div><label>Date</label><input id="date" type="date"></div>
+<div><label>Format</label><select id="format"><option>Stroke Play</option><option>Stableford</option></select></div>
+</div>
+<div style="margin-top:10px"><label>Mode</label><div class="actions">
+<button id="oneBtn" class="primary">1 Player</button><button id="flightBtn" class="secondary">Flight • up to 4</button>
+</div></div>
+<div class="notice" style="margin-top:10px">Course data is editable in the app source if a club changes its tee/par/S.I. information.</div>
+</div>
+
+<div class="card">
+<div class="titleline"><h2>Players</h2><button id="addPlayer" class="secondary">+ Add Player</button></div>
+<div id="players" class="players"></div>
+</div>
+
+<div class="card">
+<div class="titleline"><h2>Scorecard</h2><span id="courseInfo" class="small"></span></div>
+<div class="scoretable"><table id="scoretable"></table></div>
+<div class="totals" id="totals"></div>
+</div>
+
+<div class="card">
+<h2>Round Actions</h2>
+<div class="actions">
+<button id="save" class="primary">Save Round</button>
+<button id="new" class="secondary">New Round</button>
+<button id="share" class="gold">Share Scorecard</button>
+</div>
+</div>
+</section>
+
+<section id="stats" class="hidden">
+<div class="card"><h2>Playing Statistics</h2><div id="statsGrid"></div></div>
+</section>
+
+<section id="history" class="hidden">
+<div class="card"><div class="titleline"><h2>Saved Rounds</h2><button id="clearHistory" class="danger">Clear</button></div><div id="historyList"></div></div>
+</section>
+
+<footer>My Golf Scorecard • saved locally on this iPhone/browser</footer>
+</main>
+
+<script>
+const courses={
+"Malarayat • Makulot / Lobo":{par:[4,5,4,3,4,4,3,5,4,4,4,3,5,4,3,4,5,4],si:[9,3,15,17,1,7,13,5,11,10,16,14,2,6,18,12,4,8]},
+"Malarayat • Lobo / Malipunyo":{par:[4,5,4,3,4,4,3,5,4,4,4,3,5,4,3,4,5,4],si:[10,4,16,18,2,8,14,6,12,11,17,15,3,7,1,13,5,9]},
+"Malarayat • Malipunyo / Makulot":{par:[4,5,4,3,4,4,3,5,4,4,4,3,5,4,3,4,5,4],si:[11,5,17,1,3,9,15,7,13,12,18,16,4,8,2,14,6,10]},
+"Summit Point Golf & Country Club":{par:[4,4,5,3,4,4,5,3,4,4,5,4,3,4,5,4,3,5],si:[7,3,11,15,1,5,9,17,13,8,4,12,16,2,10,6,18,14]},
+"Fernando Air Base Golf Course":{par:[4,4,3,5,4,4,5,3,4,4,5,3,4,4,5,3,4,5],si:[5,11,17,1,7,9,3,15,13,6,12,18,8,2,10,16,4,14]}
+};
+let state={mode:1,course:Object.keys(courses)[0],tee:"Regular",date:new Date().toISOString().slice(0,10),format:"Stroke Play",players:[{name:"Player 1",hcp:0,scores:Array(18).fill(null),stats:Array.from({length:18},()=>({putts:"",fir:"",gir:"",pen:""}))}],active:0};
+const $=id=>document.getElementById(id);
+$("date").value=state.date;
+Object.keys(courses).forEach(c=>{let o=document.createElement("option");o.textContent=c;$("course").appendChild(o)});
+$("course").value=state.course;
+["Championship","Regular","Forward"].forEach(t=>{let o=document.createElement("option");o.textContent=t;$("tee").appendChild(o)});$("tee").value=state.tee;
+
+function currentCourse(){return courses[state.course]}
+function renderPlayers(){
+$("players").innerHTML="";
+state.players.forEach((p,i)=>{
+ let d=document.createElement("div");d.className="player"+(i===state.active?" active":"");
+ d.innerHTML=`<label>Golfer ${i+1}</label><input value="${p.name}" data-name="${i}"><label style="margin-top:6px">Handicap Index</label><input type="number" min="0" step=".1" value="${p.hcp}" data-hcp="${i}">`;
+ d.onclick=()=>{state.active=i;renderPlayers();renderTable();renderStats()};
+ d.querySelector("[data-name]").oninput=e=>p.name=e.target.value||`Player ${i+1}`;
+ d.querySelector("[data-hcp]").oninput=e=>p.hcp=Number(e.target.value)||0;
+ $("players").appendChild(d);
+});
+$("addPlayer").style.display=state.mode===1||state.players.length>=4?"none":"block";
+}
+function renderTable(){
+const c=currentCourse(), holes=[...Array(18)].map((_,i)=>i+1);
+let h=`<thead><tr><th>Hole</th>${holes.map(x=>`<th>${x}</th>`).join("")}</tr></thead><tbody>`;
+h+=`<tr><th>Par</th>${c.par.map(x=>`<td>${x}</td>`).join("")}</tr>`;
+h+=`<tr><th>S.I.</th>${c.si.map(x=>`<td>${x}</td>`).join("")}</tr>`;
+const p=state.players[state.active];
+h+=`<tr><th>${p.name} score</th>${p.scores.map((s,i)=>`<td><input type="number" min="1" max="15" inputmode="numeric" value="${s??""}" data-hole="${i}"></td>`).join("")}</tr>`;
+h+=`<tr><th>Putts</th>${p.stats.map((s,i)=>`<td><input type="number" min="0" max="10" inputmode="numeric" value="${s.putts}" data-stat="putts" data-hole="${i}"></td>`).join("")}</tr>`;
+h+=`</tbody>`;$("scoretable").innerHTML=h;
+document.querySelectorAll("[data-hole]").forEach(inp=>inp.oninput=e=>{
+ const i=+e.target.dataset.hole;
+ if(e.target.dataset.stat)p.stats[i][e.target.dataset.stat]=e.target.value;
+ else p.scores[i]=e.target.value===""?null:Number(e.target.value);
+ renderTotals();renderStats();
+});
+$("courseInfo").textContent=`Par ${c.par.reduce((a,b)=>a+b,0)} • ${state.tee}`;
+renderTotals();
+}
+function gross(p){return p.scores.reduce((a,b)=>a+(Number(b)||0),0)}
+function holesPlayed(p){return p.scores.filter(x=>x!==null).length}
+function renderTotals(){
+const c=currentCourse(),p=state.players[state.active],f=p.scores.slice(0,9).reduce((a,b)=>a+(Number(b)||0),0),b=p.scores.slice(9).reduce((a,x)=>a+(Number(x)||0),0),g=f+b,par=c.par.reduce((a,x)=>a+x,0);
+$("totals").innerHTML=`<div class="metric"><span>Front 9</span><b>${f||"—"}</b></div><div class="metric"><span>Back 9</span><b>${b||"—"}</b></div><div class="metric"><span>Total</span><b>${g||"—"}</b></div><div class="metric"><span>To Par</span><b>${g?((g-par>0?"+":"")+ (g-par)):"—"}</b></div>`;
+}
+function renderStats(){
+const p=state.players[state.active];let putts=0,pen=0;
+p.stats.forEach(x=>{putts+=Number(x.putts)||0;pen+=Number(x.pen)||0});
+let scored=p.scores.filter(x=>x!==null),c=currentCourse(),par=c.par;
+let bird=0,bog=0; p.scores.forEach((s,i)=>{if(s==null)return;let d=s-par[i];if(d<=-1)bird++;if(d>=1)bog++});
+$("statsGrid").innerHTML=`<div class="totals">
+<div class="metric"><span>Holes Played</span><b>${holesPlayed(p)}</b></div>
+<div class="metric"><span>Putts</span><b>${putts||"—"}</b></div>
+<div class="metric"><span>Birdie+</span><b>${bird}</b></div>
+<div class="metric"><span>Bogey+</span><b>${bog}</b></div></div>
+<p class="small" style="margin-top:12px">Detailed fairway/GIR/penalty fields can be added per hole in a future version. Scores and putts are already saved locally.</p>`;
+}
+function renderHistory(){
+let hs=JSON.parse(localStorage.getItem("golfRounds")||"[]");
+$("historyList").innerHTML=hs.length?hs.map((r,i)=>`<div class="card" style="margin:8px 0"><b>${r.course}</b><div class="small">${r.date} • ${r.players.map(p=>p.name+":"+gross(p)).join(" | ")}</div><button class="secondary" style="margin-top:7px" onclick="loadRound(${i})">Load</button></div>`).join(""):`<p class="small">No saved rounds yet.</p>`;
+}
+window.loadRound=i=>{let hs=JSON.parse(localStorage.getItem("golfRounds")||"[]");state=hs[i];$("course").value=state.course;$("tee").value=state.tee; $("date").value=state.date;$("format").value=state.format;renderPlayers();renderTable();renderStats();};
+function saveRound(){let hs=JSON.parse(localStorage.getItem("golfRounds")||"[]");hs.unshift(JSON.parse(JSON.stringify(state)));localStorage.setItem("golfRounds",JSON.stringify(hs.slice(0,30)));renderHistory();alert("Round saved on this device.");}
+function newRound(){state={mode:1,course:$("course").value,tee:$("tee").value,date:new Date().toISOString().slice(0,10),format:$("format").value,players:[{name:"Player 1",hcp:0,scores:Array(18).fill(null),stats:Array.from({length:18},()=>({putts:"",fir:"",gir:"",pen:""}))}],active:0};$("date").value=state.date;renderPlayers();renderTable();renderStats();}
+$("course").onchange=e=>{state.course=e.target.value;renderTable();renderStats()};
+$("tee").onchange=e=>state.tee=e.target.value;
+$("date").onchange=e=>state.date=e.target.value;
+$("format").onchange=e=>state.format=e.target.value;
+$("oneBtn").onclick=()=>{state.mode=1;state.players=state.players.slice(0,1);state.active=0;renderPlayers();renderTable()};
+$("flightBtn").onclick=()=>{state.mode=4;if(state.players.length===1)state.players.push({name:"Player 2",hcp:0,scores:Array(18).fill(null),stats:Array.from({length:18},()=>({putts:"",fir:"",gir:"",pen:""}))});renderPlayers();renderTable()};
+$("addPlayer").onclick=()=>{if(state.players.length<4){let n=state.players.length+1;state.players.push({name:"Player "+n,hcp:0,scores:Array(18).fill(null),stats:Array.from({length:18},()=>({putts:"",fir:"",gir:"",pen:""}))});renderPlayers();renderTable()}};
+$("save").onclick=saveRound;$("new").onclick=newRound;
+$("clearHistory").onclick=()=>{if(confirm("Clear all saved rounds on this device?")){localStorage.removeItem("golfRounds");renderHistory()}};
+$("share").onclick=async()=>{let p=state.players[state.active],txt=`⛳ ${state.course}\n${state.date}\n${p.name}: ${gross(p)} (${gross(p)-currentCourse().par.reduce((a,b)=>a+b,0)>=0?"+":""}${gross(p)-currentCourse().par.reduce((a,b)=>a+b,0)})`;if(navigator.share)await navigator.share({title:"Golf Scorecard",text:txt});else alert(txt)};
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");["round","stats","history"].forEach(x=>$(x).classList.toggle("hidden",x!==b.dataset.tab));if(b.dataset.tab==="history")renderHistory()});
+renderPlayers();renderTable();renderStats();renderHistory();
+</script>
+</body>
+</html>
