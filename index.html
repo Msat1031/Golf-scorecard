@@ -39,7 +39,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:20px}
 <div class="tabs">
 <button class="tab active" data-tab="round">Round</button>
 <button class="tab" data-tab="stats">Stats</button>
-<button class="tab" data-tab="history">History</button>
+<button class="tab" data-tab="history">History</button>\n<button class="tab" data-tab="manager">Course Manager</button>
 </div>
 
 <section id="round">
@@ -88,21 +88,54 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:20px}
 <div class="card"><div class="titleline"><h2>Saved Rounds</h2><button id="clearHistory" class="danger">Clear</button></div><div id="historyList"></div></div>
 </section>
 
+<section id="manager" class="hidden">
+<div class="card">
+<h2>Course Manager</h2>
+<p class="small">Add, edit, delete, or back up your own courses. Each course entry represents one tee/course combination.</p>
+<div class="row">
+<div><label>Course / tee combination name</label><input id="cmName" placeholder="e.g. New Golf Club • White"></div>
+</div>
+<div style="margin-top:10px"><label>Par for holes 1–18 (comma-separated)</label><input id="cmPar" placeholder="4,4,3,5,..."></div>
+<div style="margin-top:10px"><label>Stroke Index for holes 1–18 (comma-separated)</label><input id="cmSi" placeholder="9,3,15,1,..."></div>
+<div class="small" style="margin:8px 0">Use exactly 18 Pars (3–6) and Stroke Index values 1–18, each used once.</div>
+<div class="actions"><button id="cmAdd" class="primary">Add Course</button><button id="cmUpdate" class="secondary">Update Selected</button><button id="cmDelete" class="danger">Delete Selected</button></div>
+</div>
+<div class="card">
+<h2>Existing Courses</h2><label>Select a course to edit</label><select id="cmList"></select>
+<div class="actions" style="margin-top:10px"><button id="cmLoad" class="secondary">Load into Editor</button><button id="cmUse" class="gold">Use in Scorecard</button></div>
+</div>
+<div class="card">
+<h2>Import / Export Courses</h2>
+<div class="actions"><button id="cmExport" class="primary">Export JSON</button><button id="cmImportFile" class="secondary">Import JSON File</button></div>
+<input type="file" id="cmFile" accept=".json,application/json" class="hidden">
+<p class="small">Import replaces the course list on this device. Export a backup first. Saved rounds are stored separately.</p>
+</div>
+</section>
+
 <footer>My Golf Scorecard • saved locally on this iPhone/browser</footer>
 </main>
 
 <script>
-const courses={
+let courses={
 "Malarayat • Makulot / Lobo":{par:[4,5,4,3,4,4,3,5,4,4,4,3,5,4,3,4,5,4],si:[9,3,15,17,1,7,13,5,11,10,16,14,2,6,18,12,4,8]},
 "Malarayat • Lobo / Malipunyo":{par:[4,5,4,3,4,4,3,5,4,4,4,3,5,4,3,4,5,4],si:[10,4,16,18,2,8,14,6,12,11,17,15,3,7,1,13,5,9]},
 "Malarayat • Malipunyo / Makulot":{par:[4,5,4,3,4,4,3,5,4,4,4,3,5,4,3,4,5,4],si:[11,5,17,1,3,9,15,7,13,12,18,16,4,8,2,14,6,10]},
 "Summit Point Golf & Country Club":{par:[4,4,5,3,4,4,5,3,4,4,5,4,3,4,5,4,3,5],si:[7,3,11,15,1,5,9,17,13,8,4,12,16,2,10,6,18,14]},
 "Fernando Air Base Golf Course":{par:[4,4,3,5,4,4,5,3,4,4,5,3,4,4,5,3,4,5],si:[5,11,17,1,7,9,3,15,13,6,12,18,8,2,10,16,4,14]}
 };
+try{const saved=JSON.parse(localStorage.getItem("golfCoursesV4")||"null");if(saved&&typeof saved==="object"&&!Array.isArray(saved)&&Object.keys(saved).length) courses=saved;}catch(e){}
 let state={mode:1,course:Object.keys(courses)[0],tee:"Regular",date:new Date().toISOString().slice(0,10),format:"Stroke Play",players:[{name:"Player 1",hcp:0,scores:Array(18).fill(null),stats:Array.from({length:18},()=>({putts:"",fir:"",gir:"",pen:""}))}],active:0};
 const $=id=>document.getElementById(id);
 $("date").value=state.date;
-Object.keys(courses).forEach(c=>{let o=document.createElement("option");o.textContent=c;$("course").appendChild(o)});
+function persistCourses(){localStorage.setItem("golfCoursesV4",JSON.stringify(courses))}
+function renderCourseOptions(preferred){
+ const sel=$("course"), old=preferred||sel.value||state.course;sel.innerHTML="";
+ Object.keys(courses).forEach(c=>{let o=document.createElement("option");o.value=c;o.textContent=c;sel.appendChild(o)});
+ if(courses[old])sel.value=old;else sel.value=Object.keys(courses)[0];
+ state.course=sel.value;
+ const list=$("cmList");if(list){list.innerHTML="";Object.keys(courses).forEach(c=>{let o=document.createElement("option");o.value=c;o.textContent=c;list.appendChild(o)})}
+}
+renderCourseOptions(state.course);
 $("course").value=state.course;
 ["Championship","Regular","Forward"].forEach(t=>{let o=document.createElement("option");o.textContent=t;$("tee").appendChild(o)});$("tee").value=state.tee;
 
@@ -172,7 +205,34 @@ $("addPlayer").onclick=()=>{if(state.players.length<4){let n=state.players.lengt
 $("save").onclick=saveRound;$("new").onclick=newRound;
 $("clearHistory").onclick=()=>{if(confirm("Clear all saved rounds on this device?")){localStorage.removeItem("golfRounds");renderHistory()}};
 $("share").onclick=async()=>{let p=state.players[state.active],txt=`⛳ ${state.course}\n${state.date}\n${p.name}: ${gross(p)} (${gross(p)-currentCourse().par.reduce((a,b)=>a+b,0)>=0?"+":""}${gross(p)-currentCourse().par.reduce((a,b)=>a+b,0)})`;if(navigator.share)await navigator.share({title:"Golf Scorecard",text:txt});else alert(txt)};
-document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");["round","stats","history"].forEach(x=>$(x).classList.toggle("hidden",x!==b.dataset.tab));if(b.dataset.tab==="history")renderHistory()});
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");["round","stats","history","manager"].forEach(x=>$(x).classList.toggle("hidden",x!==b.dataset.tab));if(b.dataset.tab==="history")renderHistory();if(b.dataset.tab==="manager")renderCourseOptions()});
+function parseCourseNums(id){return $(id).value.split(",").map(x=>Number(x.trim()))}
+function courseEditorLoad(key){const c=courses[key];if(!c)return;$("cmName").value=key;$("cmTee").value="Regular";$("cmPar").value=c.par.join(",");$("cmSi").value=c.si.join(",");$("cmList").value=key}
+function courseEditorValidate(){
+ const name=$("cmName").value.trim(),par=parseCourseNums("cmPar"),si=parseCourseNums("cmSi");
+ if(!name)return "Please enter a course name.";
+ if(par.length!==18||par.some(x=>!Number.isInteger(x)||x<3||x>6))return "Enter exactly 18 Pars, each from 3 to 6.";
+ if(si.length!==18||si.some(x=>!Number.isInteger(x)||x<1||x>18)||new Set(si).size!==18)return "Enter S.I. values 1–18 exactly once each.";
+ return null;
+}
+function courseEditorSave(mode){
+ const err=courseEditorValidate();if(err){alert(err);return}
+ const name=$("cmName").value.trim(),par=parseCourseNums("cmPar"),si=parseCourseNums("cmSi"),old=$("cmList").value;
+ if(mode==="add"&&courses[name]){alert("That course name already exists. Use Update Selected or choose another name.");return}
+ if(mode==="update"&&!old){alert("Select a course first.");return}
+ if(mode==="update"&&name!==old&&courses[name]){alert("A course with that name already exists.");return}
+ if(mode==="update"&&old!==name)delete courses[old];
+ courses[name]={par,si};persistCourses();renderCourseOptions(name);$("cmList").value=name;alert(mode==="add"?"Course added.":"Course updated.");}
+$("cmAdd").onclick=()=>courseEditorSave("add");
+$("cmUpdate").onclick=()=>courseEditorSave("update");
+$("cmLoad").onclick=()=>courseEditorLoad($("cmList").value);
+$("cmUse").onclick=()=>{const key=$("cmList").value;if(!courses[key])return;renderCourseOptions(key);$("course").value=key;state.course=key;renderTable();renderStats();document.querySelector('[data-tab="round"]').click()};
+$("cmDelete").onclick=()=>{const key=$("cmList").value;if(!key)return;if(Object.keys(courses).length<=1){alert("Keep at least one course.");return}if(!confirm("Delete "+key+"? Saved historical rounds will remain."))return;delete courses[key];persistCourses();renderCourseOptions();courseEditorLoad(Object.keys(courses)[0]);alert("Course deleted.")};
+$("cmExport").onclick=()=>{const blob=new Blob([JSON.stringify({format:"my-golf-scorecard-courses-v4",courses},null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="golf-courses-backup.json";a.click();URL.revokeObjectURL(url)};
+$("cmImportFile").onclick=()=>$("cmFile").click();
+$("cmFile").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const raw=JSON.parse(await f.text()),incoming=raw.courses||raw;if(!incoming||typeof incoming!=="object"||Array.isArray(incoming)||!Object.keys(incoming).length)throw new Error("Invalid course backup.");for(const [name,c] of Object.entries(incoming)){if(!name.trim()||!Array.isArray(c.par)||!Array.isArray(c.si)||c.par.length!==18||c.si.length!==18||c.par.some(x=>!Number.isInteger(x)||x<3||x>6)||c.si.some(x=>!Number.isInteger(x)||x<1||x>18)||new Set(c.si).size!==18)throw new Error("Invalid data in course: "+name)}if(!confirm("Import replaces your current course list. Saved rounds remain separate. Continue?"))return;courses=incoming;persistCourses();renderCourseOptions();courseEditorLoad(Object.keys(courses)[0]);alert("Courses imported successfully.");}catch(err){alert("Import failed: "+err.message)}finally{e.target.value=""}};
+$("cmList").onchange=()=>courseEditorLoad($("cmList").value);
+courseEditorLoad(Object.keys(courses)[0]);
 renderPlayers();renderTable();renderStats();renderHistory();
 </script>
 </body>

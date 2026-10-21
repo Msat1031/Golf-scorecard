@@ -36,3 +36,10 @@ This version includes:
 - local round history
 - share scorecard
 - offline caching after first load
+
+V4 COURSE MANAGER:
+- Add, edit and delete course entries in the Course Manager tab.
+- Each entry contains 18-hole Par and Stroke Index arrays.
+- Course definitions persist in localStorage and appear in the scorecard course selector.
+- Import/export course backups as JSON. Import replaces the course list; saved rounds remain separate.
+- Verify all course data against official scorecards before competition use.
