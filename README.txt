@@ -8,7 +8,6 @@ Files:
 - icon-180.png
 - icon-192.png
 - icon-512.png
-- favicon.png
 
 IMPORTANT:
 A Progressive Web App must be served from HTTPS (or localhost) to install and use its

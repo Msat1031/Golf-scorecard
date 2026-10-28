@@ -8,14 +8,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Golf Scorecard">
 <link rel="apple-touch-icon" href="icon-180.png">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <title>My Golf Scorecard</title>
 <style>
 :root{--green:#173f35;--green2:#23604e;--cream:#f5f2e9;--card:#fff;--line:#d9ddd7;--text:#17221e;--muted:#68736e;--accent:#c9a84b;--danger:#a33b32}
 *{box-sizing:border-box}body{margin:0;background:var(--cream);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,Arial,sans-serif}
 header{background:linear-gradient(135deg,var(--green),var(--green2));color:white;padding:calc(14px + env(safe-area-inset-top)) 16px 16px;position:sticky;top:0;z-index:10;box-shadow:0 2px 10px #0002}
-h1{font-size:22px;margin:0 0 4px}.sub{opacity:.82;font-size:13px}
+h1{font-size:22px;margin:0 0 4px;display:flex;align-items:center;gap:9px}.brand-icon{width:46px;height:46px;object-fit:contain;border-radius:10px;flex:0 0 46px}.sub{opacity:.82;font-size:13px}
 main{max-width:760px;margin:auto;padding:14px 12px 100px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin:10px 0;box-shadow:0 2px 8px #0000000b}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
@@ -35,12 +34,13 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:20px}
 </style>
 </head>
 <body>
-<header><h1>⛳ My Golf Scorecard</h1><div class="sub">Personal golf scoring • works offline</div></header>
+<header><h1><img class="brand-icon" src="logo.png" alt="Golf Scorecard logo"> My Golf Scorecard</h1><div class="sub">Personal golf scoring • works offline</div></header>
 <main>
 <div class="tabs">
 <button class="tab active" data-tab="round">Round</button>
 <button class="tab" data-tab="stats">Stats</button>
-<button class="tab" data-tab="history">History</button>\n<button class="tab" data-tab="manager">Course Manager</button>
+<button class="tab" data-tab="history">History</button>
+<button class="tab" data-tab="manager">Course Manager</button>
 </div>
 
 <section id="round">
